@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Care Sprint Capacity Planner 2026</title>
+<style>
+:root{
+  --bg:#fff;--bg2:#f5f8f5;--bg3:#edf3ed;--bd:rgba(0,0,0,.10);--bd2:rgba(0,0,0,.20);
+  --tx:#1a1f1a;--tx2:#4f5f4f;--tx3:#7a8a7a;
+  --ac:#1a7a3a;--ac-bg:#e6f4eb;--ac-tx:#0d5227;
+  --gn-bg:#e6f4eb;--gn-tx:#1a7a3a;
+  --am-bg:#faeeda;--am-tx:#854f0b;
+  --rd-bg:#fcebeb;--rd-tx:#a32d2d;
+  --pu-bg:#eeedfe;--pu-tx:#3c3489;
+  --r:10px;--rs:6px
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1e1a;--bg2:#202420;--bg3:#272d27;--bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.18);
+  --tx:#edf3ed;--tx2:#9ab09a;--tx3:#7a8a7a;
+  --ac:#6abf82;--ac-bg:#0d5227;--ac-tx:#a8dbb8;
+  --gn-bg:#0d5227;--gn-tx:#a8dbb8;
+  --am-bg:#633806;--am-tx:#fac775;
+  --rd-bg:#791f1f;--rd-tx:#f7c1c1;
+  --pu-bg:#26215c;--pu-tx:#cecbf6
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--tx);font-size:14px;min-height:100vh}
+header{background:var(--bg);border-bottom:.5px solid var(--bd2);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:10px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px}
+.lm{width:30px;height:30px;background:var(--ac);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.lt{font-size:14px;font-weight:500}.ls{font-size:10px;color:var(--tx3)}
+.hr{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.btn{padding:6px 13px;border-radius:var(--rs);border:.5px solid var(--bd2);background:var(--bg);color:var(--tx);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3)}
+.btn-primary{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn-primary:hover{opacity:.9}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;margin-right:5px}
+.sync-dot.ok{background:#1a7a3a}.sync-dot.err{background:#e53935}.sync-dot.busy{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-ts{font-size:11px;color:var(--tx3)}
+
+/* Sprint nav */
+.sprint-nav{background:var(--bg);border-bottom:.5px solid var(--bd);padding:8px 22px;display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap}
+.qgroup{display:flex;gap:3px;align-items:center}
+.qlabel{font-size:10px;font-weight:600;color:var(--tx3);margin-right:4px;white-space:nowrap}
+.sprint-btn{padding:4px 8px;border-radius:5px;border:.5px solid var(--bd);background:var(--bg2);color:var(--tx2);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sprint-btn:hover{background:var(--bg3)}
+.sprint-btn.active{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+.sprint-btn.modified{border-color:var(--am-tx);color:var(--am-tx)}
+.sprint-btn.active.modified{background:var(--am-tx);border-color:var(--am-tx);color:#fff}
+.qdiv{width:1px;background:var(--bd2);height:20px;margin:0 4px}
+
+/* Main layout */
+.main{padding:18px 22px;max-width:1400px;margin:0 auto}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.card{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--r);padding:14px 16px}
+.card-label{font-size:11px;color:var(--tx3);margin-bottom:4px}
+.card-val{font-size:24px;font-weight:600;color:var(--tx);line-height:1}
+.card-sub{font-size:11px;color:var(--tx3);margin-top:3px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:0;border-bottom:.5px solid var(--bd2)}
+.tab{padding:8px 16px;border-radius:var(--r) var(--r) 0 0;font-size:12px;cursor:pointer;color:var(--tx3);border:.5px solid transparent;border-bottom:none;margin-bottom:-1px;background:transparent;transition:all .15s}
+.tab:hover{color:var(--tx);background:var(--bg3)}
+.tab.active{background:var(--bg);color:var(--ac);border-color:var(--bd2);font-weight:500}
+.tab-content{display:none;background:var(--bg);border:.5px solid var(--bd2);border-top:none;border-radius:0 0 var(--r) var(--r);padding:16px;overflow-x:auto}
+.tab-content.active{display:block}
+
+/* Calendar table */
+.cal-wrap{overflow-x:auto}
+table.cal{border-collapse:collapse;width:100%;min-width:600px}
+table.cal th{font-size:11px;font-weight:500;color:var(--tx3);padding:5px 8px;text-align:left;border-bottom:.5px solid var(--bd2);white-space:nowrap;background:var(--bg)}
+table.cal td{padding:4px 6px;border-bottom:.5px solid var(--bd);vertical-align:middle;font-size:12px}
+table.cal tr:last-child td{border-bottom:none}
+.person-name{font-weight:500;color:var(--tx);white-space:nowrap;min-width:130px}
+.person-role{font-size:10px;color:var(--tx3)}
+.person-fte{font-size:10px;color:var(--tx3);margin-left:4px}
+.day-cell{width:28px;height:28px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--tx2);transition:all .1s;margin:1px}
+.day-cell.work{background:var(--gn-bg);color:var(--gn-tx)}
+.day-cell.work:hover{filter:brightness(.93)}
+.day-cell.leave{background:var(--am-bg);color:var(--am-tx)}
+.day-cell.off{background:var(--bg3);color:var(--tx3);cursor:default}
+.day-cell.holiday{background:var(--pu-bg);color:var(--pu-tx);cursor:default}
+.day-col{text-align:center}
+.day-header{font-size:10px;color:var(--tx3);text-align:center;padding:3px 2px}
+.day-header.weekend{color:var(--bd2)}
+.capacity-cell{min-width:80px}
+.cap-bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:2px}
+.cap-bar{height:100%;border-radius:3px;transition:width .3s}
+.cap-green{background:var(--gn-tx)}.cap-amber{background:var(--am-tx)}.cap-red{background:var(--rd-tx)}
+.cap-label{font-size:10px;color:var(--tx3)}
+.section-header{font-size:11px;font-weight:600;color:var(--tx3);background:var(--bg2);padding:5px 8px;text-transform:uppercase;letter-spacing:.5px}
+
+/* SP breakdown */
+.sp-table{width:100%;border-collapse:collapse}
+.sp-table th{font-size:11px;color:var(--tx3);text-align:left;padding:6px 10px;border-bottom:.5px solid var(--bd2)}
+.sp-table td{padding:6px 10px;border-bottom:.5px solid var(--bd);font-size:13px}
+.sp-table tr:last-child td{border-bottom:none}
+.sp-group-row td{font-weight:600;background:var(--bg2);font-size:12px}
+.sp-val{font-size:18px;font-weight:600;color:var(--ac)}
+
+/* Quarter view */
+.qv-table{width:100%;border-collapse:collapse;font-size:12px}
+.qv-table th{font-size:11px;color:var(--tx3);text-align:left;padding:6px 10px;border-bottom:.5px solid var(--bd2);white-space:nowrap}
+.qv-table td{padding:5px 10px;border-bottom:.5px solid var(--bd)}
+.qv-table tr:last-child td{border-bottom:none}
+.qv-table tr.active-sprint td{background:var(--ac-bg)}
+.qv-cap{display:flex;align-items:center;gap:6px}
+.qv-bar-wrap{width:60px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.qv-bar{height:100%;border-radius:3px}
+
+/* Sprint notes */
+.notes-wrap{margin-top:14px;padding-top:14px;border-top:.5px solid var(--bd)}
+.notes-label{font-size:11px;font-weight:600;color:var(--tx3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.notes-ta{width:100%;min-height:70px;border:.5px solid var(--bd2);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--tx);background:var(--bg2);resize:vertical;font-family:inherit;line-height:1.5}
+.notes-ta:focus{outline:none;border-color:var(--ac)}
+.notes-ta::placeholder{color:var(--tx3)}
+
+/* Sprint date editor */
+.sprint-dates-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.sprint-dates-label{font-size:11px;color:var(--tx3)}
+.sprint-date-input{border:.5px solid var(--bd2);border-radius:5px;padding:4px 8px;font-size:12px;color:var(--tx);background:var(--bg);cursor:pointer}
+.sprint-date-input:focus{outline:none;border-color:var(--ac)}
+.sprint-dates-reset{font-size:11px;color:var(--ac);cursor:pointer;text-decoration:underline}
+
+/* Guest / delete */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--r);padding:22px;width:360px;max-width:90vw;border:.5px solid var(--bd2)}
+.modal h3{font-size:15px;margin-bottom:14px}
+.modal label{font-size:12px;color:var(--tx3);display:block;margin-bottom:3px}
+.modal input,.modal select{width:100%;border:.5px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;font-size:13px;color:var(--tx);background:var(--bg2);margin-bottom:10px}
+.modal input:focus,.modal select:focus{outline:none;border-color:var(--ac)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+
+/* Leave modal */
+.leave-person-select{margin-bottom:10px}
+.leave-date-row{display:flex;gap:8px}
+.leave-date-row .modal-field{flex:1}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:9px 18px;border-radius:20px;font-size:12px;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Guest list */
+.guest-list{margin-bottom:10px}
+.guest-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:12px}
+.guest-item:last-child{border-bottom:none}
+.guest-remove{color:var(--rd-tx);cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px;border:.5px solid var(--rd-tx)}
+.guest-remove:hover{background:var(--rd-bg)}
+
+/* Non-capacity section */
+.non-cap-row td{opacity:.5}
+.non-cap-row td .day-cell{cursor:default!important}
+
+/* Undo bar */
+.undo-bar{background:var(--am-bg);border:.5px solid var(--am-tx);border-radius:var(--rs);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:12px;color:var(--am-tx);display:none}
+.undo-bar.show{display:flex}
+.undo-link{cursor:pointer;font-weight:600;text-decoration:underline;margin-left:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="lm">CARE</div>
+    <div>
+      <div class="lt">Care Sprint Capacity Planner</div>
+      <div class="ls">Pandora Digital · 2026</div>
+    </div>
+  </div>
+  <div class="hr">
+    <span class="sync-dot" id="syncDot"></span>
+    <span class="sync-ts" id="syncTs">Not synced yet</span>
+    <button class="btn" onclick="loadFromSheets()">⟳ Load</button>
+    <button class="btn btn-primary" onclick="saveToSheets()">↑ Save</button>
+    <button class="btn" onclick="openGuestModal()">+ Guests</button>
+    <button class="btn" onclick="openLeaveModal()">📅 Plan longer leave</button>
+    <button class="btn" onclick="shareUrl()">⎘ Share</button>
+  </div>
+</header>
+
+<div class="sprint-nav" id="sprintNav"></div>
+
+<div class="main">
+  <div id="undoBar" class="undo-bar">
+    <span id="undoMsg"></span>
+    <span class="undo-link" onclick="doUndo()">Undo</span>
+  </div>
+
+  <div class="cards" id="summaryCards"></div>
+
+  <div class="sprint-dates-wrap" id="sprintDatesWrap"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('capacity',this)">Capacity</button>
+    <button class="tab" onclick="switchTab('sp',this)">SP Breakdown</button>
+    <button class="tab" onclick="switchTab('quarter',this)">Quarter View</button>
+  </div>
+  <div class="tab-content active" id="tab-capacity">
+    <div class="cal-wrap" id="calWrap"></div>
+    <div class="notes-wrap">
+      <div class="notes-label">Sprint Notes</div>
+      <textarea class="notes-ta" id="sprintNotes" placeholder="Add notes about this sprint — goals, risks, blockers, dependencies…" oninput="onNotesInput()"></textarea>
+    </div>
+  </div>
+  <div class="tab-content" id="tab-sp">
+    <div id="spBreakdown"></div>
+  </div>
+  <div class="tab-content" id="tab-quarter">
+    <div id="quarterView"></div>
+  </div>
+</div>
+
+<!-- Guest modal -->
+<div class="modal-overlay" id="guestModal">
+  <div class="modal">
+    <h3>Manage Guests</h3>
+    <div class="guest-list" id="guestList"></div>
+    <label>Name</label>
+    <input type="text" id="guestName" placeholder="Full name">
+    <label>Role</label>
+    <input type="text" id="guestRole" placeholder="e.g. Developer">
+    <label>Group</label>
+    <select id="guestGroup">
+      <option value="af">Agentforce</option>
+      <option value="eng">Engineering</option>
+      <option value="qa">QA / QE</option>
+      <option value="ux">UX</option>
+    </select>
+    <label>FTE (0.1–1.0)</label>
+    <input type="number" id="guestFte" value="1.0" min="0.1" max="1.0" step="0.1">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeGuestModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addGuest()">Add Guest</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leave modal -->
+<div class="modal-overlay" id="leaveModal">
+  <div class="modal">
+    <h3>Plan Longer Leave</h3>
+    <label>Team Member</label>
+    <select id="leavePerson" class="leave-person-select"></select>
+    <div class="leave-date-row">
+      <div class="modal-field">
+        <label>From</label>
+        <input type="date" id="leaveFrom">
+      </div>
+      <div class="modal-field">
+        <label>To</label>
+        <input type="date" id="leaveTo">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeLeaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyLeave()">Book Leave</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const PROXY_URL = 'https://script.google.com/macros/s/AKfycby8-rXK-y9QpYMaXq3vuQxPhUm4kbcj3UtptwqseH3KKkX-dkTXXhGampSyhjvLO0W0/exec';
+
+// ─── SPRINTS ──────────────────────────────────────────────────────────────────
+const DEFAULT_SPRINTS = [
+  // Q1
+  {id:'S1', label:'S1',q:'Q1',start:'2026-01-08',end:'2026-01-21'},
+  {id:'S2', label:'S2',q:'Q1',start:'2026-01-22',end:'2026-02-04'},
+  {id:'S3', label:'S3',q:'Q1',start:'2026-02-05',end:'2026-02-18'},
+  {id:'S4', label:'S4',q:'Q1',start:'2026-02-19',end:'2026-03-04'},
+  {id:'S5', label:'S5',q:'Q1',start:'2026-03-05',end:'2026-03-18'},
+  // Q2
+  {id:'S6', label:'S6',q:'Q2',start:'2026-03-19',end:'2026-04-01'},
+  {id:'S7', label:'S7',q:'Q2',start:'2026-04-02',end:'2026-04-15'},
+  {id:'S8', label:'S8',q:'Q2',start:'2026-04-16',end:'2026-04-29'},
+  {id:'S9', label:'S9',q:'Q2',start:'2026-04-30',end:'2026-05-13'},
+  {id:'S10',label:'S10',q:'Q2',start:'2026-05-14',end:'2026-05-27'},
+  {id:'S11',label:'S11',q:'Q2',start:'2026-05-28',end:'2026-06-10'},
+  // Q3
+  {id:'S12',label:'S12',q:'Q3',start:'2026-06-11',end:'2026-06-24'},
+  {id:'S13',label:'S13',q:'Q3',start:'2026-06-25',end:'2026-07-08'},
+  {id:'S14',label:'S14',q:'Q3',start:'2026-07-09',end:'2026-07-22'},
+  {id:'S15',label:'S15',q:'Q3',start:'2026-07-23',end:'2026-08-05'},
+  {id:'S16',label:'S16',q:'Q3',start:'2026-08-06',end:'2026-08-19'},
+  {id:'S17',label:'S17',q:'Q3',start:'2026-08-20',end:'2026-09-02'},
+  {id:'S18',label:'S18',q:'Q3',start:'2026-09-03',end:'2026-09-16'},
+  // Q4
+  {id:'S19',label:'S19',q:'Q4',start:'2026-09-17',end:'2026-09-30'},
+  {id:'S20',label:'S20',q:'Q4',start:'2026-10-01',end:'2026-10-14'},
+  {id:'S21',label:'S21',q:'Q4',start:'2026-10-15',end:'2026-10-28'},
+  {id:'S22',label:'S22',q:'Q4',start:'2026-10-29',end:'2026-11-11'},
+  {id:'S23',label:'S23',q:'Q4',start:'2026-11-12',end:'2026-11-25'},
+  {id:'S24',label:'S24',q:'Q4',start:'2026-11-26',end:'2026-12-09'},
+  {id:'S25',label:'S25',q:'Q4',start:'2026-12-10',end:'2026-12-23'},
+];
+
+// Danish public holidays 2026
+const DK_HOLIDAYS = [
+  '2026-01-01','2026-04-02','2026-04-03','2026-04-05','2026-04-06',
+  '2026-05-14','2026-05-24','2026-05-25','2026-06-05',
+  '2026-12-24','2026-12-25','2026-12-26'
+];
+
+// ─── TEAM ─────────────────────────────────────────────────────────────────────
+// capacity: true = counts towards SP, false = non-capacity (PM/SM)
+const BASE_GROUPS = [
+  {id:'af', label:'Agentforce', members:[
+    {id:'plar', name:'Patrick Larsen', fte:1.0, capacity:true}
+  ]},
+  {id:'eng', label:'Engineering', members:[
+    {id:'akha', name:'Aamir Khan',          fte:1.0, capacity:true},
+    {id:'rmod', name:'Rajeshwari Modipalli',fte:1.0, capacity:true},
+    {id:'ashu', name:'Abhishek Shukla',     fte:1.0, capacity:true},
+    {id:'kkri', name:'Kasper Kristiansen',  fte:1.0, capacity:true},
+    {id:'raik', name:'Raaghu I k',          fte:1.0, capacity:true},
+  ]},
+  {id:'qa', label:'QA / QE', members:[
+    {id:'ssin', name:'Shailja Singh',         fte:1.0, capacity:true},
+    {id:'sbha', name:'Saswata Bhattacharya',  fte:0.3, capacity:true},
+  ]},
+  {id:'ux', label:'UX', members:[
+    {id:'bcio', name:'Bogdan Ciobanu', fte:1.0, capacity:true}
+  ]},
+  {id:'_nc', label:'Non-capacity', members:[
+    {id:'rpad', name:'Rashmi Padhi',   fte:1.0, capacity:false},
+    {id:'smal', name:'Suleman Malik',  fte:1.0, capacity:false},
+  ]}
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let data        = {};   // {personId: {sprintId: {date: 'leave'|'off'}}}
+let guests      = [];   // [{id,name,role,group,fte,capacity:true}]
+let deleted     = [];   // [personId]
+let sprintDates = {};   // {sprintId: {start,end}}
+let sprintNotes = {};   // {sprintId: string}
+
+let currentSprint = DEFAULT_SPRINTS[0].id;
+let undoStack = [];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function getSprintDef(id){
+  const def = DEFAULT_SPRINTS.find(s=>s.id===id);
+  if(sprintDates[id]) return {...def, ...sprintDates[id]};
+  return def;
+}
+function isDefaultDates(id){
+  if(!sprintDates[id]) return true;
+  const def = DEFAULT_SPRINTS.find(s=>s.id===id);
+  return sprintDates[id].start === def.start && sprintDates[id].end === def.end;
+}
+function getDatesInRange(start,end){
+  const dates=[];
+  let d = new Date(start+'T00:00:00');
+  const e = new Date(end+'T00:00:00');
+  while(d<=e){ dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return dates;
+}
+function isWeekend(dateStr){
+  const d=new Date(dateStr+'T00:00:00'); return d.getDay()===0||d.getDay()===6;
+}
+function isHoliday(dateStr){ return DK_HOLIDAYS.includes(dateStr); }
+function isWorkday(dateStr){ return !isWeekend(dateStr)&&!isHoliday(dateStr); }
+function fmtDate(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function getDayLabel(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-GB',{weekday:'short'}).slice(0,1)+d.getDate();
+}
+
+function allMembers(){
+  let ms=[];
+  BASE_GROUPS.forEach(g=>g.members.forEach(m=>{
+    if(!deleted.includes(m.id)) ms.push({...m,group:g.id,groupLabel:g.label});
+  }));
+  guests.forEach(g=>{if(!deleted.includes(g.id)) ms.push({...g,capacity:true});});
+  return ms;
+}
+function capacityMembers(){ return allMembers().filter(m=>m.capacity); }
+
+function getDayState(personId, sprintId, dateStr){
+  const st = data[personId]?.[sprintId]?.[dateStr];
+  if(st) return st;
+  if(isHoliday(dateStr)) return 'holiday';
+  if(isWeekend(dateStr)) return 'off';
+  return 'work';
+}
+
+function workingDays(sprintId){
+  const sp=getSprintDef(sprintId);
+  return getDatesInRange(sp.start,sp.end).filter(isWorkday);
+}
+
+function personAvailableDays(personId, sprintId){
+  return workingDays(sprintId).filter(d=>getDayState(personId,sprintId,d)==='work').length;
+}
+
+function sprintCapacityPct(sprintId){
+  const members=capacityMembers();
+  if(!members.length) return 0;
+  const wd=workingDays(sprintId).length;
+  if(!wd) return 0;
+  let totalAvail=0,totalMax=0;
+  members.forEach(m=>{
+    totalAvail += personAvailableDays(m.id,sprintId)*m.fte;
+    totalMax   += wd*m.fte;
+  });
+  return totalMax?Math.round(totalAvail/totalMax*100):0;
+}
+
+function estimatedSP(sprintId){
+  const members=capacityMembers();
+  let sp=0;
+  members.forEach(m=>{
+    const avail=personAvailableDays(m.id,sprintId);
+    sp += avail * 8 * m.fte * 0.70 / 8;
+  });
+  return Math.round(sp);
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function renderSprintNav(){
+  const nav=document.getElementById('sprintNav');
+  nav.innerHTML='';
+  const quarters=[...new Set(DEFAULT_SPRINTS.map(s=>s.q))];
+  quarters.forEach((q,qi)=>{
+    if(qi>0){const dv=document.createElement('div');dv.className='qdiv';nav.appendChild(dv);}
+    const wrap=document.createElement('div');wrap.className='qgroup';
+    const lbl=document.createElement('span');lbl.className='qlabel';lbl.textContent=q;wrap.appendChild(lbl);
+    DEFAULT_SPRINTS.filter(s=>s.q===q).forEach(s=>{
+      const btn=document.createElement('button');
+      btn.className='sprint-btn'+(s.id===currentSprint?' active':'')+(!isDefaultDates(s.id)?' modified':'');
+      btn.textContent=s.label;
+      btn.onclick=()=>selectSprint(s.id);
+      wrap.appendChild(btn);
+    });
+    nav.appendChild(wrap);
+  });
+}
+
+function renderCards(){
+  const sp=currentSprint;
+  const members=allMembers();
+  const capM=capacityMembers();
+  const wd=workingDays(sp).length;
+  let totalAvail=0;
+  capM.forEach(m=>totalAvail+=personAvailableDays(m.id,sp));
+  const capPct=sprintCapacityPct(sp);
+  const spEst=estimatedSP(sp);
+
+  const cards=[
+    {label:'Team members', val:members.length, sub:`${capM.length} in capacity`},
+    {label:'Working days', val:wd, sub:'in sprint'},
+    {label:'Capacity', val:capPct+'%', sub:capPct>=80?'🟢 Good':capPct>=60?'🟡 Reduced':'🔴 Low'},
+    {label:'Available days', val:totalAvail, sub:'across capacity team'},
+    {label:'Est. Story Points', val:spEst, sub:'at 70% dev allocation'},
+  ];
+  document.getElementById('summaryCards').innerHTML=cards.map(c=>`
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-val">${c.val}</div>
+      <div class="card-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderSprintDates(){
+  const sp=getSprintDef(currentSprint);
+  const wrap=document.getElementById('sprintDatesWrap');
+  const modified=!isDefaultDates(currentSprint);
+  wrap.innerHTML=`
+    <span class="sprint-dates-label">Sprint dates:</span>
+    <input type="date" class="sprint-date-input" id="sdStart" value="${sp.start}" onchange="updateSprintDate('start',this.value)">
+    <span class="sprint-dates-label">→</span>
+    <input type="date" class="sprint-date-input" id="sdEnd" value="${sp.end}" onchange="updateSprintDate('end',this.value)">
+    ${modified?`<span class="sprint-dates-reset" onclick="resetSprintDate()">Reset to default</span>`:''}
+  `;
+}
+
+function renderCalendar(){
+  const sp=currentSprint;
+  const spDef=getSprintDef(sp);
+  const dates=getDatesInRange(spDef.start,spDef.end);
+  const members=allMembers();
+
+  let html='<table class="cal">';
+  // Header
+  html+='<thead><tr><th style="min-width:160px">Member</th>';
+  dates.forEach(d=>{
+    const cls=isWeekend(d)||isHoliday(d)?'day-header weekend':'day-header';
+    html+=`<th class="${cls}">${getDayLabel(d)}</th>`;
+  });
+  html+='<th>Capacity</th></tr></thead><tbody>';
+
+  // Groups
+  const groups=[...new Set(members.map(m=>m.groupLabel))];
+  groups.forEach(grpLabel=>{
+    const grpMembers=members.filter(m=>m.groupLabel===grpLabel);
+    html+=`<tr><td colspan="${dates.length+2}" class="section-header">${grpLabel}</td></tr>`;
+    grpMembers.forEach(m=>{
+      const isNC=!m.capacity;
+      const wd=workingDays(sp).length;
+      const avail=personAvailableDays(m.id,sp);
+      const pct=wd?Math.round(avail/wd*100):0;
+      const capCls=pct>=80?'cap-green':pct>=60?'cap-amber':'cap-red';
+      html+=`<tr class="${isNC?'non-cap-row':''}">`;
+      html+=`<td><div class="person-name">${m.name}</div><div class="person-role">${m.role||m.groupLabel}<span class="person-fte">${m.fte<1?` · ${Math.round(m.fte*100)}%`:''}</span></div></td>`;
+      dates.forEach(d=>{
+        const state=getDayState(m.id,sp,d);
+        const clickable=isWorkday(d)&&!isNC;
+        const label=state==='leave'?'L':'';
+        html+=`<td class="day-col"><div class="day-cell ${state}" ${clickable?`onclick="toggleDay('${m.id}','${sp}','${d}')"`:''} title="${d}">${label}</div></td>`;
+      });
+      if(isNC){
+        html+=`<td class="capacity-cell"><div class="cap-label" style="color:var(--tx3)">Not counted</div></td>`;
+      } else {
+        html+=`<td class="capacity-cell">
+          <div class="cap-label">${pct}% · ${avail}d</div>
+          <div class="cap-bar-wrap"><div class="cap-bar ${capCls}" style="width:${pct}%"></div></div>
+        </td>`;
+      }
+      // Delete button
+      html+=`</tr>`;
+    });
+  });
+  html+='</tbody></table>';
+
+  // Delete buttons (rendered after table)
+  document.getElementById('calWrap').innerHTML=html;
+
+  // Sprint notes
+  document.getElementById('sprintNotes').value=sprintNotes[currentSprint]||'';
+}
+
+function renderSPBreakdown(){
+  const sp=currentSprint;
+  const groups=BASE_GROUPS.filter(g=>g.id!=='_nc');
+  const guestGroups=[...new Set(guests.map(g=>g.group))];
+  const allGroupIds=[...new Set([...groups.map(g=>g.id),...guestGroups])];
+
+  let html='<table class="sp-table"><thead><tr><th>Group / Member</th><th>FTE</th><th>Available Days</th><th>Est. SP</th></tr></thead><tbody>';
+  let grandTotal=0;
+
+  allGroupIds.forEach(gid=>{
+    const baseDef=BASE_GROUPS.find(g=>g.id===gid);
+    const label=baseDef?baseDef.label:gid;
+    const groupMembers=[
+      ...(baseDef?baseDef.members.filter(m=>!deleted.includes(m.id)&&m.capacity):[]),
+      ...guests.filter(g=>g.group===gid&&!deleted.includes(g.id))
+    ];
+    if(!groupMembers.length) return;
+    let groupSP=0;
+    groupMembers.forEach(m=>{
+      const avail=personAvailableDays(m.id,sp);
+      const sp_m=Math.round(avail*8*m.fte*0.70/8);
+      groupSP+=sp_m;
+    });
+    grandTotal+=groupSP;
+    html+=`<tr class="sp-group-row"><td>${label}</td><td></td><td></td><td><span class="sp-val">${groupSP}</span></td></tr>`;
+    groupMembers.forEach(m=>{
+      const avail=personAvailableDays(m.id,sp);
+      const sp_m=Math.round(avail*8*m.fte*0.70/8);
+      html+=`<tr><td style="padding-left:20px">${m.name}</td><td>${m.fte<1?Math.round(m.fte*100)+'%':'Full'}</td><td>${avail}</td><td>${sp_m}</td></tr>`;
+    });
+  });
+  html+=`<tr style="font-weight:700;border-top:.5px solid var(--bd2)"><td>Total</td><td></td><td></td><td><span class="sp-val">${grandTotal}</span></td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById('spBreakdown').innerHTML=html;
+}
+
+function renderQuarterView(){
+  let html='<table class="qv-table"><thead><tr><th>Sprint</th><th>Dates</th><th>Working Days</th><th>Capacity</th><th>Est. SP</th></tr></thead><tbody>';
+  DEFAULT_SPRINTS.forEach(s=>{
+    const def=getSprintDef(s.id);
+    const wd=workingDays(s.id).length;
+    const pct=sprintCapacityPct(s.id);
+    const sp=estimatedSP(s.id);
+    const capCls=pct>=80?'cap-green':pct>=60?'cap-amber':'cap-red';
+    const isActive=s.id===currentSprint;
+    html+=`<tr class="${isActive?'active-sprint':''}">
+      <td><strong>${s.label}</strong> <span style="font-size:10px;color:var(--tx3)">${s.q}</span></td>
+      <td style="font-size:11px">${fmtDate(def.start)} – ${fmtDate(def.end)}</td>
+      <td>${wd}</td>
+      <td><div class="qv-cap">
+        <div class="qv-bar-wrap"><div class="qv-bar ${capCls}" style="width:${pct}%"></div></div>
+        <span style="font-size:11px">${pct}%</span>
+      </div></td>
+      <td>${sp}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('quarterView').innerHTML=html;
+}
+
+function renderAll(){
+  renderSprintNav();
+  renderCards();
+  renderSprintDates();
+  renderCalendar();
+  renderSPBreakdown();
+  renderQuarterView();
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function selectSprint(id){
+  currentSprint=id;
+  renderAll();
+}
+
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function toggleDay(personId, sprintId, dateStr){
+  if(!data[personId]) data[personId]={};
+  if(!data[personId][sprintId]) data[personId][sprintId]={};
+  const cur=data[personId][sprintId][dateStr];
+  undoStack.push({type:'day',personId,sprintId,dateStr,prev:cur});
+  if(cur==='leave') delete data[personId][sprintId][dateStr];
+  else data[personId][sprintId][dateStr]='leave';
+  renderAll();
+  autoSave();
+}
+
+function updateSprintDate(which, val){
+  if(!sprintDates[currentSprint]){
+    const def=DEFAULT_SPRINTS.find(s=>s.id===currentSprint);
+    sprintDates[currentSprint]={start:def.start,end:def.end};
+  }
+  sprintDates[currentSprint][which]=val;
+  renderAll();
+  autoSave();
+}
+
+function resetSprintDate(){
+  delete sprintDates[currentSprint];
+  renderAll();
+  autoSave();
+}
+
+function onNotesInput(){
+  sprintNotes[currentSprint]=document.getElementById('sprintNotes').value;
+  clearTimeout(window._notesSaveTimer);
+  window._notesSaveTimer=setTimeout(autoSave,1500);
+}
+
+// ─── GUESTS ──────────────────────────────────────────────────────────────────
+function openGuestModal(){
+  renderGuestList();
+  document.getElementById('guestModal').classList.add('open');
+}
+function closeGuestModal(){ document.getElementById('guestModal').classList.remove('open'); }
+function renderGuestList(){
+  const list=document.getElementById('guestList');
+  if(!guests.length){ list.innerHTML='<div style="color:var(--tx3);font-size:12px;margin-bottom:10px">No guests added yet.</div>'; return; }
+  list.innerHTML=guests.map(g=>`
+    <div class="guest-item">
+      <span>${g.name} <span style="color:var(--tx3)">(${g.role})</span></span>
+      <button class="guest-remove" onclick="removeGuest('${g.id}')">Remove</button>
+    </div>`).join('');
+}
+function addGuest(){
+  const name=document.getElementById('guestName').value.trim();
+  const role=document.getElementById('guestRole').value.trim();
+  const group=document.getElementById('guestGroup').value;
+  const fte=parseFloat(document.getElementById('guestFte').value)||1.0;
+  if(!name){ showToast('Please enter a name'); return; }
+  const id='g_'+Date.now();
+  const grpDef=BASE_GROUPS.find(g=>g.id===group);
+  guests.push({id,name,role,group,groupLabel:grpDef?grpDef.label:group,fte,capacity:true});
+  document.getElementById('guestName').value='';
+  document.getElementById('guestRole').value='';
+  renderGuestList();
+  renderAll();
+  autoSave();
+  showToast(`${name} added as guest`);
+}
+function removeGuest(id){
+  guests=guests.filter(g=>g.id!==id);
+  renderGuestList();
+  renderAll();
+  autoSave();
+}
+
+// ─── LEAVE MODAL ──────────────────────────────────────────────────────────────
+function openLeaveModal(){
+  const sel=document.getElementById('leavePerson');
+  sel.innerHTML=allMembers().filter(m=>m.capacity).map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('leaveFrom').value='';
+  document.getElementById('leaveTo').value='';
+  document.getElementById('leaveModal').classList.add('open');
+}
+function closeLeaveModal(){ document.getElementById('leaveModal').classList.remove('open'); }
+function applyLeave(){
+  const personId=document.getElementById('leavePerson').value;
+  const from=document.getElementById('leaveFrom').value;
+  const to=document.getElementById('leaveTo').value;
+  if(!from||!to){ showToast('Please select both dates'); return; }
+  if(from>to){ showToast('Start date must be before end date'); return; }
+  const dates=getDatesInRange(from,to).filter(isWorkday);
+  let count=0;
+  dates.forEach(d=>{
+    DEFAULT_SPRINTS.forEach(s=>{
+      const def=getSprintDef(s.id);
+      if(d>=def.start&&d<=def.end){
+        if(!data[personId]) data[personId]={};
+        if(!data[personId][s.id]) data[personId][s.id]={};
+        data[personId][s.id][d]='leave';
+        count++;
+      }
+    });
+  });
+  closeLeaveModal();
+  renderAll();
+  autoSave();
+  const person=allMembers().find(m=>m.id===personId);
+  showUndoBar(`Leave booked for ${person?.name||personId} (${count} day${count!==1?'s':''})`, ()=>{
+    dates.forEach(d=>{
+      DEFAULT_SPRINTS.forEach(s=>{
+        if(data[personId]?.[s.id]?.[d]==='leave') delete data[personId][s.id][d];
+      });
+    });
+    renderAll(); autoSave();
+  });
+}
+
+// ─── UNDO ─────────────────────────────────────────────────────────────────────
+let _undoCb=null;
+function showUndoBar(msg, cb){
+  _undoCb=cb;
+  document.getElementById('undoMsg').textContent=msg;
+  document.getElementById('undoBar').classList.add('show');
+  clearTimeout(window._undoTimer);
+  window._undoTimer=setTimeout(()=>document.getElementById('undoBar').classList.remove('show'),6000);
+}
+function doUndo(){ if(_undoCb){_undoCb();_undoCb=null;} document.getElementById('undoBar').classList.remove('show'); }
+
+// ─── SYNC ─────────────────────────────────────────────────────────────────────
+function setSyncState(state, ts){
+  const dot=document.getElementById('syncDot');
+  const label=document.getElementById('syncTs');
+  dot.className='sync-dot '+state;
+  if(ts) label.textContent='Saved '+ts;
+  else if(state==='busy') label.textContent='Syncing…';
+  else if(state==='err') label.textContent='Sync failed';
+}
+
+function getPayload(){
+  return {data, guests, deleted, sprintDates, sprintNotes};
+}
+
+async function saveToSheets(){
+  if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
+  setSyncState('busy');
+  try{
+    const r=await fetch(PROXY_URL,{method:'POST',body:JSON.stringify({action:'save',data:getPayload()})});
+    const j=await r.json();
+    if(j.ok){
+      const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      setSyncState('ok',ts);
+      localStorage.setItem('carePlannerData',JSON.stringify(getPayload()));
+      showToast('Saved to Google Sheets ✓');
+    } else { setSyncState('err'); showToast('Save failed: '+(j.error||'Unknown error')); }
+  } catch(e){ setSyncState('err'); showToast('Network error — saved locally only'); localStorage.setItem('carePlannerData',JSON.stringify(getPayload())); }
+}
+
+async function loadFromSheets(){
+  if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
+  setSyncState('busy');
+  try{
+    const r=await fetch(PROXY_URL,{method:'POST',body:JSON.stringify({action:'load'})});
+    const j=await r.json();
+    if(j.ok&&j.data){
+      applyPayload(j.data);
+      const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      setSyncState('ok',ts);
+      showToast('Loaded from Google Sheets ✓');
+    } else if(j.ok&&!j.data){ showToast('No data in sheet yet'); setSyncState('ok','Empty'); }
+    else { setSyncState('err'); showToast('Load failed'); }
+  } catch(e){ setSyncState('err'); showToast('Network error'); }
+}
+
+function applyPayload(p){
+  data        = p.data        || {};
+  guests      = (p.guests     || []).map(g=>({...g,groupLabel:BASE_GROUPS.find(bg=>bg.id===g.group)?.label||g.group}));
+  deleted     = p.deleted     || [];
+  sprintDates = p.sprintDates || {};
+  sprintNotes = p.sprintNotes || {};
+  renderAll();
+}
+
+let _autoSaveTimer;
+function autoSave(){
+  localStorage.setItem('carePlannerData',JSON.stringify(getPayload()));
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(saveToSheets, 2000);
+}
+
+// ─── SHARE ────────────────────────────────────────────────────────────────────
+function shareUrl(){
+  try{
+    const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(getPayload()))));
+    const url=location.origin+location.pathname+'?d='+encoded;
+    navigator.clipboard.writeText(url).then(()=>showToast('Link copied to clipboard ✓'));
+  } catch(e){ showToast('Could not copy link'); }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  // Check URL for shared data
+  const params=new URLSearchParams(location.search);
+  if(params.get('d')){
+    try{
+      const p=JSON.parse(decodeURIComponent(escape(atob(params.get('d')))));
+      applyPayload(p);
+      showToast('Loaded from shared link');
+      return;
+    } catch(e){}
+  }
+  // Try localStorage
+  const cached=localStorage.getItem('carePlannerData');
+  if(cached){ try{ applyPayload(JSON.parse(cached)); } catch(e){} }
+  else { renderAll(); }
+  // Auto-load from Sheets
+  if(PROXY_URL!=='REPLACE_WITH_YOUR_APPS_SCRIPT_URL') loadFromSheets();
+  else renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
