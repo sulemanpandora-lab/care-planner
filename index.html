@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Care Sprint Capacity Planner 2026</title>
+<title>Care Sprint Capacity Planner</title>
 <style>
 :root{
   --bg:#fff;--bg2:#f5f8f5;--bg3:#edf3ed;--bd:rgba(0,0,0,.10);--bd2:rgba(0,0,0,.20);
@@ -41,7 +41,11 @@ header{background:var(--bg);border-bottom:.5px solid var(--bd2);padding:12px 22p
 .sync-ts{font-size:11px;color:var(--tx3)}
 
 /* Sprint nav */
-.sprint-nav{background:var(--bg);border-bottom:.5px solid var(--bd);padding:8px 22px;display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap}
+.sprint-nav{background:var(--bg);border-bottom:.5px solid var(--bd);padding:8px 22px;display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;align-items:center}
+.year-toggle{display:flex;gap:2px;padding:2px;margin-right:10px;background:var(--bg2);border:.5px solid var(--bd2);border-radius:14px;flex-shrink:0}
+.year-btn{padding:3px 12px;border:none;border-radius:12px;background:transparent;color:var(--tx2);font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
+.year-btn:hover{color:var(--tx)}
+.year-btn.active{background:var(--ac);color:#fff}
 .qgroup{display:flex;gap:3px;align-items:center}
 .qlabel{font-size:10px;font-weight:600;color:var(--tx3);margin-right:4px;white-space:nowrap}
 .sprint-btn{padding:4px 8px;border-radius:5px;border:.5px solid var(--bd);background:var(--bg2);color:var(--tx2);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -271,36 +275,71 @@ const PROXY_URL = 'https://script.google.com/macros/s/AKfycby8-rXK-y9QpYMaXq3vuQ
 
 // ─── SPRINTS ──────────────────────────────────────────────────────────────────
 const DEFAULT_SPRINTS = [
+  // ── 2026 ────────────────────────────────────────────────────────────────────
   // Q1
-  {id:'S1', label:'S1',q:'Q1',start:'2026-01-08',end:'2026-01-21'},
-  {id:'S2', label:'S2',q:'Q1',start:'2026-01-22',end:'2026-02-04'},
-  {id:'S3', label:'S3',q:'Q1',start:'2026-02-05',end:'2026-02-18'},
-  {id:'S4', label:'S4',q:'Q1',start:'2026-02-19',end:'2026-03-04'},
-  {id:'S5', label:'S5',q:'Q1',start:'2026-03-05',end:'2026-03-18'},
+  {id:'S1', label:'S1',q:'Q1',y:2026,start:'2026-01-08',end:'2026-01-21'},
+  {id:'S2', label:'S2',q:'Q1',y:2026,start:'2026-01-22',end:'2026-02-04'},
+  {id:'S3', label:'S3',q:'Q1',y:2026,start:'2026-02-05',end:'2026-02-18'},
+  {id:'S4', label:'S4',q:'Q1',y:2026,start:'2026-02-19',end:'2026-03-04'},
+  {id:'S5', label:'S5',q:'Q1',y:2026,start:'2026-03-05',end:'2026-03-18'},
   // Q2
-  {id:'S6', label:'S6',q:'Q2',start:'2026-03-19',end:'2026-04-01'},
-  {id:'S7', label:'S7',q:'Q2',start:'2026-04-02',end:'2026-04-15'},
-  {id:'S8', label:'S8',q:'Q2',start:'2026-04-16',end:'2026-04-29'},
-  {id:'S9', label:'S9',q:'Q2',start:'2026-04-30',end:'2026-05-13'},
-  {id:'S10',label:'S10',q:'Q2',start:'2026-05-14',end:'2026-05-27'},
-  {id:'S11',label:'S11',q:'Q2',start:'2026-05-28',end:'2026-06-10'},
+  {id:'S6', label:'S6',q:'Q2',y:2026,start:'2026-03-19',end:'2026-04-01'},
+  {id:'S7', label:'S7',q:'Q2',y:2026,start:'2026-04-02',end:'2026-04-15'},
+  {id:'S8', label:'S8',q:'Q2',y:2026,start:'2026-04-16',end:'2026-04-29'},
+  {id:'S9', label:'S9',q:'Q2',y:2026,start:'2026-04-30',end:'2026-05-13'},
+  {id:'S10',label:'S10',q:'Q2',y:2026,start:'2026-05-14',end:'2026-05-27'},
+  {id:'S11',label:'S11',q:'Q2',y:2026,start:'2026-05-28',end:'2026-06-10'},
   // Q3
-  {id:'S12',label:'S12',q:'Q3',start:'2026-06-11',end:'2026-06-24'},
-  {id:'S13',label:'S13',q:'Q3',start:'2026-06-25',end:'2026-07-08'},
-  {id:'S14',label:'S14',q:'Q3',start:'2026-07-09',end:'2026-07-22'},
-  {id:'S15',label:'S15',q:'Q3',start:'2026-07-23',end:'2026-08-05'},
-  {id:'S16',label:'S16',q:'Q3',start:'2026-08-06',end:'2026-08-19'},
-  {id:'S17',label:'S17',q:'Q3',start:'2026-08-20',end:'2026-09-02'},
-  {id:'S18',label:'S18',q:'Q3',start:'2026-09-03',end:'2026-09-16'},
+  {id:'S12',label:'S12',q:'Q3',y:2026,start:'2026-06-11',end:'2026-06-24'},
+  {id:'S13',label:'S13',q:'Q3',y:2026,start:'2026-06-25',end:'2026-07-08'},
+  {id:'S14',label:'S14',q:'Q3',y:2026,start:'2026-07-09',end:'2026-07-22'},
+  {id:'S15',label:'S15',q:'Q3',y:2026,start:'2026-07-23',end:'2026-08-05'},
+  {id:'S16',label:'S16',q:'Q3',y:2026,start:'2026-08-06',end:'2026-08-19'},
+  {id:'S17',label:'S17',q:'Q3',y:2026,start:'2026-08-20',end:'2026-09-02'},
+  {id:'S18',label:'S18',q:'Q3',y:2026,start:'2026-09-03',end:'2026-09-16'},
   // Q4
-  {id:'S19',label:'S19',q:'Q4',start:'2026-09-17',end:'2026-09-30'},
-  {id:'S20',label:'S20',q:'Q4',start:'2026-10-01',end:'2026-10-14'},
-  {id:'S21',label:'S21',q:'Q4',start:'2026-10-15',end:'2026-10-28'},
-  {id:'S22',label:'S22',q:'Q4',start:'2026-10-29',end:'2026-11-11'},
-  {id:'S23',label:'S23',q:'Q4',start:'2026-11-12',end:'2026-11-25'},
-  {id:'S24',label:'S24',q:'Q4',start:'2026-11-26',end:'2026-12-09'},
-  {id:'S25',label:'S25',q:'Q4',start:'2026-12-10',end:'2026-12-23'},
+  {id:'S19',label:'S19',q:'Q4',y:2026,start:'2026-09-17',end:'2026-09-30'},
+  {id:'S20',label:'S20',q:'Q4',y:2026,start:'2026-10-01',end:'2026-10-14'},
+  {id:'S21',label:'S21',q:'Q4',y:2026,start:'2026-10-15',end:'2026-10-28'},
+  {id:'S22',label:'S22',q:'Q4',y:2026,start:'2026-10-29',end:'2026-11-11'},
+  {id:'S23',label:'S23',q:'Q4',y:2026,start:'2026-11-12',end:'2026-11-25'},
+  {id:'S24',label:'S24',q:'Q4',y:2026,start:'2026-11-26',end:'2026-12-09'},
+  {id:'S25',label:'S25',q:'Q4',y:2026,start:'2026-12-10',end:'2026-12-23'},
+  // ── 2027 ────────────────────────────────────────────────────────────────────
+  // Q1 (5 sprints)
+  {id:'27-S1', label:'S1', q:'Q1',y:2027,start:'2027-01-28',end:'2027-02-10'},
+  {id:'27-S2', label:'S2', q:'Q1',y:2027,start:'2027-02-11',end:'2027-02-24'},
+  {id:'27-S3', label:'S3', q:'Q1',y:2027,start:'2027-02-25',end:'2027-03-10'},
+  {id:'27-S4', label:'S4', q:'Q1',y:2027,start:'2027-03-11',end:'2027-03-24'},
+  {id:'27-S5', label:'S5', q:'Q1',y:2027,start:'2027-04-01',end:'2027-04-07'},
+  // Q2 (6 sprints)
+  {id:'27-S6', label:'S6', q:'Q2',y:2027,start:'2027-04-08',end:'2027-04-21'},
+  {id:'27-S7', label:'S7', q:'Q2',y:2027,start:'2027-04-22',end:'2027-05-05'},
+  {id:'27-S8', label:'S8', q:'Q2',y:2027,start:'2027-05-06',end:'2027-05-19'},
+  {id:'27-S9', label:'S9', q:'Q2',y:2027,start:'2027-05-20',end:'2027-06-02'},
+  {id:'27-S10',label:'S10',q:'Q2',y:2027,start:'2027-06-03',end:'2027-06-16'},
+  {id:'27-S11',label:'S11',q:'Q2',y:2027,start:'2027-06-17',end:'2027-06-30'},
+  // Q3 (7 sprints)
+  {id:'27-S12',label:'S12',q:'Q3',y:2027,start:'2027-07-01',end:'2027-07-14'},
+  {id:'27-S13',label:'S13',q:'Q3',y:2027,start:'2027-07-15',end:'2027-07-28'},
+  {id:'27-S14',label:'S14',q:'Q3',y:2027,start:'2027-07-29',end:'2027-08-11'},
+  {id:'27-S15',label:'S15',q:'Q3',y:2027,start:'2027-08-12',end:'2027-08-25'},
+  {id:'27-S16',label:'S16',q:'Q3',y:2027,start:'2027-08-26',end:'2027-09-08'},
+  {id:'27-S17',label:'S17',q:'Q3',y:2027,start:'2027-09-09',end:'2027-09-22'},
+  {id:'27-S18',label:'S18',q:'Q3',y:2027,start:'2027-09-23',end:'2027-10-06'},
+  // Q4 (8 sprints) — S23 end date in Confluence reads Nov 2026; corrected here to
+  // follow S22 as a 14-day sprint, which shifts S24-S26 forward by one slot
+  {id:'27-S19',label:'S19',q:'Q4',y:2027,start:'2027-10-07',end:'2027-10-20'},
+  {id:'27-S20',label:'S20',q:'Q4',y:2027,start:'2027-10-21',end:'2027-11-03'},
+  {id:'27-S21',label:'S21',q:'Q4',y:2027,start:'2027-11-04',end:'2027-11-17'},
+  {id:'27-S22',label:'S22',q:'Q4',y:2027,start:'2027-11-18',end:'2027-12-01'},
+  {id:'27-S23',label:'S23',q:'Q4',y:2027,start:'2027-12-02',end:'2027-12-15'},
+  {id:'27-S24',label:'S24',q:'Q4',y:2027,start:'2027-12-16',end:'2027-12-29'},
+  {id:'27-S25',label:'S25',q:'Q4',y:2027,start:'2027-12-30',end:'2028-01-12'},
+  {id:'27-S26',label:'S26',q:'Q4',y:2027,start:'2028-01-13',end:'2028-01-26'},
 ];
+const YEARS = [2026, 2027];
+function yearSprints(y){ return DEFAULT_SPRINTS.filter(s=>s.y===(y===undefined?curYear:y)); }
 
 // Danish public holidays 2026
 const DK_HOLIDAYS = [
@@ -324,8 +363,7 @@ const BASE_GROUPS = [
     {id:'mgho', name:'Moumita Ghosh',       fte:1.0, capacity:true},
   ]},
   {id:'qa', label:'QA / QE', members:[
-    {id:'ssin', name:'Shailja Singh',         fte:1.0, capacity:true},
-    {id:'sbha', name:'Saswata Bhattacharya',  fte:0.3, capacity:true},
+    {id:'ssin', name:'Shailja Singh', fte:1.0, capacity:true},
   ]},
   {id:'ux', label:'UX', members:[
     {id:'bcio', name:'Bogdan Ciobanu', fte:1.0, capacity:true}
@@ -343,8 +381,22 @@ let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
 
-let currentSprint = DEFAULT_SPRINTS[0].id;
+// Local date parts, not toISOString(), so the "today" marker is correct in CET
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+let curYear = YEARS.includes(new Date().getFullYear()) ? new Date().getFullYear() : YEARS[0];
+let currentSprint = (yearSprints().find(s=>{const t=todayStr();return t>=s.start&&t<=s.end;}) || yearSprints()[0]).id;
 let undoStack = [];
+
+function setYear(y){
+  if(y===curYear) return;
+  curYear = y;
+  currentSprint = (yearSprints().find(s=>{const t=todayStr();return t>=s.start&&t<=s.end;}) || yearSprints()[0]).id;
+  renderAll();
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function getSprintDef(id){
@@ -432,12 +484,24 @@ function estimatedSP(sprintId){
 function renderSprintNav(){
   const nav=document.getElementById('sprintNav');
   nav.innerHTML='';
-  const quarters=[...new Set(DEFAULT_SPRINTS.map(s=>s.q))];
+
+  const yt=document.createElement('div');yt.className='year-toggle';
+  YEARS.forEach(y=>{
+    const yb=document.createElement('button');
+    yb.className='year-btn'+(y===curYear?' active':'');
+    yb.textContent=y;
+    yb.onclick=()=>setYear(y);
+    yt.appendChild(yb);
+  });
+  nav.appendChild(yt);
+
+  const sprints=yearSprints();
+  const quarters=[...new Set(sprints.map(s=>s.q))];
   quarters.forEach((q,qi)=>{
     if(qi>0){const dv=document.createElement('div');dv.className='qdiv';nav.appendChild(dv);}
     const wrap=document.createElement('div');wrap.className='qgroup';
     const lbl=document.createElement('span');lbl.className='qlabel';lbl.textContent=q;wrap.appendChild(lbl);
-    DEFAULT_SPRINTS.filter(s=>s.q===q).forEach(s=>{
+    sprints.filter(s=>s.q===q).forEach(s=>{
       const btn=document.createElement('button');
       btn.className='sprint-btn'+(s.id===currentSprint?' active':'')+(!isDefaultDates(s.id)?' modified':'');
       btn.textContent=s.label;
@@ -579,7 +643,7 @@ function renderSPBreakdown(){
 
 function renderQuarterView(){
   let html='<table class="qv-table"><thead><tr><th>Sprint</th><th>Dates</th><th>Working Days</th><th>Capacity</th><th>Est. SP</th></tr></thead><tbody>';
-  DEFAULT_SPRINTS.forEach(s=>{
+  yearSprints().forEach(s=>{
     const def=getSprintDef(s.id);
     const wd=workingDays(s.id).length;
     const pct=sprintCapacityPct(s.id);
