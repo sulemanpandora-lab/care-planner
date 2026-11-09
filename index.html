@@ -64,6 +64,9 @@ header{background:var(--bg);border-bottom:.5px solid var(--bd2);padding:12px 22p
 .card-label{font-size:11px;color:var(--tx3);margin-bottom:4px}
 .card-val{font-size:24px;font-weight:600;color:var(--tx);line-height:1}
 .card-sub{font-size:11px;color:var(--tx3);margin-top:3px}
+.vel-input{font-size:24px;font-weight:600;color:var(--tx);line-height:1;width:100%;background:transparent;border:none;border-bottom:1px dashed var(--bd2);padding:0 0 2px;font-family:inherit}
+.vel-input:focus{outline:none;border-bottom-color:var(--ac)}
+.vel-input::placeholder{color:var(--bd2)}
 
 /* Tabs */
 .tabs{display:flex;gap:0;margin-bottom:0;border-bottom:.5px solid var(--bd2)}
@@ -381,6 +384,7 @@ let guests      = [];   // [{id,name,role,group,fte,capacity:true}]
 let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
+let velocity    = {};   // {sprintId: number} — SP actually delivered, typed in at sprint close
 
 function todayStr(){ return ymd(new Date()); }
 
@@ -533,12 +537,52 @@ function renderCards(){
     {label:'Available days', val:totalAvail, sub:'across capacity team'},
     {label:'Est. Story Points', val:spEst, sub:'at 70% dev allocation'},
   ];
+  const done=velocity[sp];
+  const avg=velocityAvg();
+  const delta=(done!=null&&spEst>0)?Math.round((done-spEst)/spEst*100):null;
   document.getElementById('summaryCards').innerHTML=cards.map(c=>`
     <div class="card">
       <div class="card-label">${c.label}</div>
       <div class="card-val">${c.val}</div>
       <div class="card-sub">${c.sub}</div>
-    </div>`).join('');
+    </div>`).join('')+`
+    <div class="card">
+      <div class="card-label">Actual velocity</div>
+      <input class="vel-input" id="velInput" type="number" min="0" step="0.5"
+             placeholder="–" value="${done!=null?done:''}" oninput="onVelocityInput()">
+      <div class="card-sub">${
+        delta!=null ? `${delta>0?'+':''}${delta}% vs estimate`
+        : avg!=null ? `avg ${avg} over ${Object.keys(velocity).length} sprint${Object.keys(velocity).length===1?'':'s'}`
+        : 'enter SP at sprint close'
+      }</div>
+    </div>`;
+}
+
+// Mean of every sprint with a figure typed in — the app never guesses this.
+function velocityAvg(){
+  const v=Object.values(velocity).filter(n=>typeof n==='number');
+  if(!v.length) return null;
+  return Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10;
+}
+
+function onVelocityInput(){
+  const el=document.getElementById('velInput');
+  const raw=el.value.trim();
+  if(raw===''){ delete velocity[currentSprint]; }
+  else {
+    const n=parseFloat(raw);
+    if(isNaN(n)||n<0) return;
+    velocity[currentSprint]=n;
+  }
+  // Update the caption in place; a full renderCards() would rebuild the input
+  // and drop focus mid-keystroke.
+  const done=velocity[currentSprint], est=estimatedSP(currentSprint), avg=velocityAvg();
+  const delta=(done!=null&&est>0)?Math.round((done-est)/est*100):null;
+  el.parentElement.querySelector('.card-sub').textContent =
+    delta!=null ? `${delta>0?'+':''}${delta}% vs estimate`
+    : avg!=null ? `avg ${avg} over ${Object.keys(velocity).length} sprint${Object.keys(velocity).length===1?'':'s'}`
+    : 'enter SP at sprint close';
+  autoSave();
 }
 
 function renderSprintDates(){
@@ -826,7 +870,7 @@ function setSyncState(state, ts){
 }
 
 function getPayload(){
-  return {data, guests, deleted, sprintDates, sprintNotes};
+  return {data, guests, deleted, sprintDates, sprintNotes, velocity};
 }
 
 async function saveToSheets(){
@@ -866,6 +910,7 @@ function applyPayload(p){
   deleted     = p.deleted     || [];
   sprintDates = p.sprintDates || {};
   sprintNotes = p.sprintNotes || {};
+  velocity = p.velocity || {};
   renderAll();
 }
 
