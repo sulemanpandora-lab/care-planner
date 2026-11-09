@@ -381,11 +381,7 @@ let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
 
-// Local date parts, not toISOString(), so the "today" marker is correct in CET
-function todayStr(){
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
+function todayStr(){ return ymd(new Date()); }
 
 let curYear = YEARS.includes(new Date().getFullYear()) ? new Date().getFullYear() : YEARS[0];
 let currentSprint = (yearSprints().find(s=>{const t=todayStr();return t>=s.start&&t<=s.end;}) || yearSprints()[0]).id;
@@ -409,11 +405,17 @@ function isDefaultDates(id){
   const def = DEFAULT_SPRINTS.find(s=>s.id===id);
   return sprintDates[id].start === def.start && sprintDates[id].end === def.end;
 }
+// Dates are parsed as local midnight, so they must be serialised from local
+// parts too — toISOString() would convert back to UTC and shift a day earlier
+// in any timezone ahead of it.
+function ymd(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function getDatesInRange(start,end){
   const dates=[];
   let d = new Date(start+'T00:00:00');
   const e = new Date(end+'T00:00:00');
-  while(d<=e){ dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  while(d<=e){ dates.push(ymd(d)); d.setDate(d.getDate()+1); }
   return dates;
 }
 function isWeekend(dateStr){
