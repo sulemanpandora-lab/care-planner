@@ -277,6 +277,9 @@ table.cal tr:last-child td{border-bottom:none}
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycby8-rXK-y9QpYMaXq3vuQxPhUm4kbcj3UtptwqseH3KKkX-dkTXXhGampSyhjvLO0W0/exec';
+// Served from a dev machine the sheet is the live team one, so reviewing a
+// change locally would write test data into it. Local runs stay on localStorage.
+const SYNC_ENABLED = !['localhost','127.0.0.1','::1',''].includes(location.hostname);
 
 // ─── SPRINTS ──────────────────────────────────────────────────────────────────
 const DEFAULT_SPRINTS = [
@@ -537,9 +540,10 @@ function renderCards(){
     {label:'Available days', val:totalAvail, sub:'across capacity team'},
     {label:'Est. Story Points', val:spEst, sub:'at 70% dev allocation'},
   ];
-  const done=velocity[sp];
+  const prev=prevSprintId(sp);
+  const done=prev?velocity[prev]:null;
   const avg=velocityAvg();
-  const delta=(done!=null&&spEst>0)?Math.round((done-spEst)/spEst*100):null;
+  const label=prev?getSprintDef(prev).label:null;
   document.getElementById('summaryCards').innerHTML=cards.map(c=>`
     <div class="card">
       <div class="card-label">${c.label}</div>
@@ -547,41 +551,67 @@ function renderCards(){
       <div class="card-sub">${c.sub}</div>
     </div>`).join('')+`
     <div class="card">
-      <div class="card-label">Actual velocity</div>
-      <input class="vel-input" id="velInput" type="number" min="0" step="0.5"
-             placeholder="–" value="${done!=null?done:''}" oninput="onVelocityInput()">
-      <div class="card-sub">${
-        delta!=null ? `${delta>0?'+':''}${delta}% vs estimate`
-        : avg!=null ? `avg ${avg} over ${Object.keys(velocity).length} sprint${Object.keys(velocity).length===1?'':'s'}`
-        : 'enter SP at sprint close'
-      }</div>
+      <div class="card-label">Delivered in ${label||'previous sprint'}</div>
+      ${prev
+        ? `<input class="vel-input" id="velInput" type="number" min="0" step="0.5"
+                  placeholder="–" value="${done!=null?done:''}" oninput="onVelocityInput()">`
+        : `<div class="card-val">–</div>`}
+      <div class="card-sub" id="velSub">${velocitySub()}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Avg velocity</div>
+      <div class="card-val" id="velAvgVal">${avg!=null?avg:'–'}</div>
+      <div class="card-sub" id="velAvgSub">${velocityAvgSub(spEst)}</div>
     </div>`;
 }
 
-// Mean of every sprint with a figure typed in — the app never guesses this.
+// Only sprints that have actually been closed out carry a figure; the app
+// never infers one, so the average speaks for those sprints alone.
+function velocityCount(){ return Object.values(velocity).filter(n=>typeof n==='number').length; }
 function velocityAvg(){
   const v=Object.values(velocity).filter(n=>typeof n==='number');
   if(!v.length) return null;
   return Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10;
 }
+function velocityAvgSub(est){
+  const n=velocityCount();
+  if(!n) return 'fill in closed sprints';
+  return `over ${n} sprint${n===1?'':'s'}${est>0?` · est. says ${est}`:''}`;
+}
+// The sprint you are planning has not delivered anything yet, so the card
+// always reports the one before it — across the year boundary too, since
+// DEFAULT_SPRINTS runs 2026 then 2027 in order.
+function prevSprintId(id){
+  const i=DEFAULT_SPRINTS.findIndex(s=>s.id===id);
+  return i>0 ? DEFAULT_SPRINTS[i-1].id : null;
+}
+function velocitySub(){
+  const prev=prevSprintId(currentSprint);
+  if(!prev) return 'no earlier sprint';
+  const done=velocity[prev], est=estimatedSP(prev);
+  if(done==null) return 'enter SP once closed';
+  if(!(est>0)) return 'delivered';
+  const d=Math.round((done-est)/est*100);
+  return `${d>0?'+':''}${d}% vs its estimate`;
+}
 
 function onVelocityInput(){
+  const prev=prevSprintId(currentSprint);
+  if(!prev) return;
   const el=document.getElementById('velInput');
   const raw=el.value.trim();
-  if(raw===''){ delete velocity[currentSprint]; }
+  if(raw===''){ delete velocity[prev]; }
   else {
     const n=parseFloat(raw);
     if(isNaN(n)||n<0) return;
-    velocity[currentSprint]=n;
+    velocity[prev]=n;
   }
-  // Update the caption in place; a full renderCards() would rebuild the input
+  // Patch the captions in place; a full renderCards() would rebuild the input
   // and drop focus mid-keystroke.
-  const done=velocity[currentSprint], est=estimatedSP(currentSprint), avg=velocityAvg();
-  const delta=(done!=null&&est>0)?Math.round((done-est)/est*100):null;
-  el.parentElement.querySelector('.card-sub').textContent =
-    delta!=null ? `${delta>0?'+':''}${delta}% vs estimate`
-    : avg!=null ? `avg ${avg} over ${Object.keys(velocity).length} sprint${Object.keys(velocity).length===1?'':'s'}`
-    : 'enter SP at sprint close';
+  const avg=velocityAvg();
+  document.getElementById('velSub').textContent=velocitySub();
+  document.getElementById('velAvgVal').textContent=avg!=null?avg:'–';
+  document.getElementById('velAvgSub').textContent=velocityAvgSub(estimatedSP(currentSprint));
   autoSave();
 }
 
@@ -874,6 +904,7 @@ function getPayload(){
 }
 
 async function saveToSheets(){
+  if(!SYNC_ENABLED){ setSyncState('ok','Local'); showToast('Local run — sheet not touched'); return; }
   if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
   setSyncState('busy');
   try{
@@ -889,6 +920,7 @@ async function saveToSheets(){
 }
 
 async function loadFromSheets(){
+  if(!SYNC_ENABLED){ setSyncState('ok','Local'); showToast('Local run — sheet not touched'); return; }
   if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
   setSyncState('busy');
   try{
