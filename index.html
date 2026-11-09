@@ -91,6 +91,8 @@ table.cal tr:last-child td{border-bottom:none}
 .day-col{text-align:center}
 .day-header{font-size:10px;color:var(--tx3);text-align:center;padding:3px 2px}
 .day-header.weekend{color:var(--bd2)}
+.dh{font-size:9px;color:var(--tx3);text-align:center}
+.dd{font-size:8px;color:var(--bd2);text-align:center}
 .capacity-cell{min-width:80px}
 .cap-bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:2px}
 .cap-bar{height:100%;border-radius:3px;transition:width .3s}
@@ -429,7 +431,8 @@ function fmtDate(dateStr){
 }
 function getDayLabel(dateStr){
   const d=new Date(dateStr+'T00:00:00');
-  return d.toLocaleDateString('en-GB',{weekday:'short'}).slice(0,1)+d.getDate();
+  const wd=d.toLocaleDateString('en-GB',{weekday:'short'}).slice(0,2).toUpperCase();
+  return `<div class="dh">${wd}</div><div class="dd">${d.getDate()}/${d.getMonth()+1}</div>`;
 }
 
 function allMembers(){
