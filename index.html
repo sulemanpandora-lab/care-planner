@@ -85,6 +85,15 @@ table.cal tr:last-child td{border-bottom:none}
 .person-name{font-weight:500;color:var(--tx);white-space:nowrap;min-width:130px}
 .person-role{font-size:10px;color:var(--tx3)}
 .person-fte{font-size:10px;color:var(--tx3);margin-left:4px}
+.fte-badge{display:inline-block;position:relative;font-size:9px;font-weight:500;padding:1px 5px;margin-left:5px;border-radius:3px;background:var(--bg3);color:var(--tx3);border:.5px solid transparent;cursor:pointer;white-space:nowrap}
+.fte-badge:hover{border-color:var(--ac);color:var(--tx)}
+.fte-badge.part{background:var(--am-bg);color:var(--am-tx)}
+.fte-badge.overridden{border-color:var(--am-tx)}
+.fte-popup{position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--bg);border:.5px solid var(--bd2);border-radius:var(--rs);box-shadow:0 4px 16px rgba(0,0,0,.25);min-width:120px;padding:4px 0}
+.fte-opt{display:block;width:100%;text-align:left;padding:5px 10px;border:none;background:transparent;color:var(--tx);font-size:11px;cursor:pointer;font-family:inherit}
+.fte-opt:hover{background:var(--bg3)}
+.fte-opt.current{color:var(--ac);font-weight:500}
+.fte-opt.reset{border-top:.5px solid var(--bd);color:var(--tx3);margin-top:3px;padding-top:6px}
 .day-cell{width:28px;height:28px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--tx2);transition:all .1s;margin:1px}
 .day-cell.work{background:var(--gn-bg);color:var(--gn-tx)}
 .day-cell.work:hover{filter:brightness(.93)}
@@ -381,6 +390,7 @@ let guests      = [];   // [{id,name,role,group,fte,capacity:true}]
 let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
+let fteOverrides= {};   // {personId: 0.33} — only set when it differs from the roster default
 let velocity    = {};   // {sprintId: number} — SP actually delivered, typed in at sprint close
 
 function todayStr(){ return ymd(new Date()); }
@@ -445,6 +455,40 @@ function allMembers(){
 }
 function capacityMembers(){ return allMembers().filter(m=>m.capacity); }
 
+// An override only exists while it differs from the roster default, so the
+// roster stays the single source of truth for someone's normal hours.
+function getMemberFTE(m){
+  return fteOverrides[m.id]!==undefined ? fteOverrides[m.id] : m.fte;
+}
+function setMemberFTE(id,fte){
+  const base=allMembers().find(m=>m.id===id);
+  const baseFte=base?base.fte:1.0;
+  if(fte===baseFte) delete fteOverrides[id];
+  else fteOverrides[id]=fte;
+  closeFTEPopups();
+  renderAll();
+  autoSave();
+}
+function closeFTEPopups(){ document.querySelectorAll('.fte-popup').forEach(p=>p.remove()); }
+function openFTEPopup(e,id){
+  e.stopPropagation();
+  const open=document.getElementById('fte-popup-'+id);
+  closeFTEPopups();
+  if(open) return;
+  const m=allMembers().find(x=>x.id===id);
+  const cur=getMemberFTE(m);
+  const opts=[0.25,0.33,0.5,0.8,1.0].map(v=>
+    `<button class="fte-opt${cur===v?' current':''}" onclick="setMemberFTE('${id}',${v})">${Math.round(v*100)}%</button>`).join('');
+  const reset=cur!==m.fte
+    ? `<button class="fte-opt reset" onclick="setMemberFTE('${id}',${m.fte})">Reset to ${Math.round(m.fte*100)}%</button>` : '';
+  const pop=document.createElement('div');
+  pop.id='fte-popup-'+id;
+  pop.className='fte-popup';
+  pop.innerHTML=opts+reset;
+  e.currentTarget.appendChild(pop);
+}
+document.addEventListener('click',closeFTEPopups);
+
 function getDayState(personId, sprintId, dateStr){
   const st = data[personId]?.[sprintId]?.[dateStr];
   if(st) return st;
@@ -469,8 +513,8 @@ function sprintCapacityPct(sprintId){
   if(!wd) return 0;
   let totalAvail=0,totalMax=0;
   members.forEach(m=>{
-    totalAvail += personAvailableDays(m.id,sprintId)*m.fte;
-    totalMax   += wd*m.fte;
+    totalAvail += personAvailableDays(m.id,sprintId)*getMemberFTE(m);
+    totalMax   += wd*getMemberFTE(m);
   });
   return totalMax?Math.round(totalAvail/totalMax*100):0;
 }
@@ -480,7 +524,7 @@ function estimatedSP(sprintId){
   let sp=0;
   members.forEach(m=>{
     const avail=personAvailableDays(m.id,sprintId);
-    sp += avail * 8 * m.fte * 0.70 / 8;
+    sp += avail * 8 * getMemberFTE(m) * 0.70 / 8;
   });
   return Math.round(sp);
 }
@@ -649,7 +693,11 @@ function renderCalendar(){
       const pct=wd?Math.round(avail/wd*100):0;
       const capCls=pct>=80?'cap-green':pct>=60?'cap-amber':'cap-red';
       html+=`<tr class="${isNC?'non-cap-row':''}">`;
-      html+=`<td><div class="person-name">${m.name}</div><div class="person-role">${m.role||m.groupLabel}<span class="person-fte">${m.fte<1?` · ${Math.round(m.fte*100)}%`:''}${m.note?` · ${m.note}`:''}</span></div></td>`;
+      const fte=getMemberFTE(m);
+      const fteCls='fte-badge'+(fte<1?' part':'')+(fteOverrides[m.id]!==undefined?' overridden':'');
+      html+=`<td><div class="person-name">${m.name}</div><div class="person-role">${m.role||m.groupLabel}`
+          + `<span class="${fteCls}" onclick="openFTEPopup(event,'${m.id}')" title="Click to change FTE">${Math.round(fte*100)}%</span>`
+          + `<span class="person-fte">${m.note?` · ${m.note}`:''}</span></div></td>`;
       dates.forEach(d=>{
         const state=getDayState(m.id,sp,d);
         const clickable=isWorkday(d)&&!isNC;
@@ -697,15 +745,15 @@ function renderSPBreakdown(){
     let groupSP=0;
     groupMembers.forEach(m=>{
       const avail=personAvailableDays(m.id,sp);
-      const sp_m=Math.round(avail*8*m.fte*0.70/8);
+      const sp_m=Math.round(avail*8*getMemberFTE(m)*0.70/8);
       groupSP+=sp_m;
     });
     grandTotal+=groupSP;
     html+=`<tr class="sp-group-row"><td>${label}</td><td></td><td></td><td><span class="sp-val">${groupSP}</span></td></tr>`;
     groupMembers.forEach(m=>{
       const avail=personAvailableDays(m.id,sp);
-      const sp_m=Math.round(avail*8*m.fte*0.70/8);
-      html+=`<tr><td style="padding-left:20px">${m.name}</td><td>${m.fte<1?Math.round(m.fte*100)+'%':'Full'}</td><td>${avail}</td><td>${sp_m}</td></tr>`;
+      const sp_m=Math.round(avail*8*getMemberFTE(m)*0.70/8);
+      html+=`<tr><td style="padding-left:20px">${m.name}</td><td>${getMemberFTE(m)<1?Math.round(getMemberFTE(m)*100)+'%':'Full'}</td><td>${avail}</td><td>${sp_m}</td></tr>`;
     });
   });
   html+=`<tr style="font-weight:700;border-top:.5px solid var(--bd2)"><td>Total</td><td></td><td></td><td><span class="sp-val">${grandTotal}</span></td></tr>`;
@@ -894,7 +942,7 @@ function setSyncState(state, ts){
 }
 
 function getPayload(){
-  return {data, guests, deleted, sprintDates, sprintNotes, velocity};
+  return {data, guests, deleted, sprintDates, sprintNotes, velocity, fteOverrides};
 }
 
 async function saveToSheets(){
@@ -937,6 +985,7 @@ function applyPayload(p){
   sprintDates = p.sprintDates || {};
   sprintNotes = p.sprintNotes || {};
   velocity = p.velocity || {};
+  fteOverrides = p.fteOverrides || {};
   renderAll();
 }
 
