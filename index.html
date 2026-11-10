@@ -390,6 +390,7 @@ let guests      = [];   // [{id,name,role,group,fte,capacity:true}]
 let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
+let sheetRev    = null; // revision last loaded; null until the Apps Script reports one
 let fteOverrides= {};   // {personId: 0.33} — only set when it differs from the roster default
 let velocity    = {};   // {sprintId: number} — SP actually delivered, typed in at sprint close
 
@@ -950,9 +951,20 @@ async function saveToSheets(){
   if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
   setSyncState('busy');
   try{
-    const r=await fetch(PROXY_URL,{method:'POST',body:JSON.stringify({action:'save',data:getPayload()})});
+    const req={action:'save',data:getPayload()};
+    if(sheetRev!==null) req.rev=sheetRev;
+    const r=await fetch(PROXY_URL,{method:'POST',body:JSON.stringify(req)});
     const j=await r.json();
+    if(j.conflict){
+      // Someone saved between our load and this write. Overwriting would drop
+      // their edit silently, so refuse and make the user pull theirs in first.
+      sheetRev=j.rev;
+      setSyncState('err');
+      showToast('Someone else saved — press Load, then redo this change');
+      return;
+    }
     if(j.ok){
+      if(j.rev!==undefined) sheetRev=j.rev;
       const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
       setSyncState('ok',ts);
       localStorage.setItem('carePlannerData',JSON.stringify(getPayload()));
@@ -968,6 +980,7 @@ async function loadFromSheets(){
   try{
     const r=await fetch(PROXY_URL,{method:'POST',body:JSON.stringify({action:'load'})});
     const j=await r.json();
+    if(j.ok&&j.rev!==undefined) sheetRev=j.rev;
     if(j.ok&&j.data){
       applyPayload(j.data);
       const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
