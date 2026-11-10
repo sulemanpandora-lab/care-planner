@@ -178,6 +178,8 @@ table.cal tr:last-child td{border-bottom:none}
 .undo-bar{background:var(--am-bg);border:.5px solid var(--am-tx);border-radius:var(--rs);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:12px;color:var(--am-tx);display:none}
 .undo-bar.show{display:flex}
 .undo-link{cursor:pointer;font-weight:600;text-decoration:underline;margin-left:10px}
+.offline-bar{background:var(--rd-bg);border:.5px solid var(--rd-tx);border-radius:var(--rs);padding:8px 14px;display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;font-size:12px;color:var(--rd-tx)}
+.offline-bar.show{display:flex}
 </style>
 </head>
 <body>
@@ -204,6 +206,11 @@ table.cal tr:last-child td{border-bottom:none}
 <div class="sprint-nav" id="sprintNav"></div>
 
 <div class="main">
+  <div id="offlineBar" class="offline-bar">
+    <span>⚠ Not connected to the team sheet. Changes stay in this browser and will not reach your team.</span>
+    <span class="undo-link" onclick="loadFromSheets()">Try again</span>
+  </div>
+
   <div id="undoBar" class="undo-bar">
     <span id="undoMsg"></span>
     <span class="undo-link" onclick="doUndo()">Undo</span>
@@ -391,6 +398,7 @@ let deleted     = [];   // [personId]
 let sprintDates = {};   // {sprintId: {start,end}}
 let sprintNotes = {};   // {sprintId: string}
 let sheetRev    = null; // revision last loaded; null until the Apps Script reports one
+let loadOk      = false; // has a load from the sheet succeeded? saving before one can wipe it
 let fteOverrides= {};   // {personId: 0.33} — only set when it differs from the roster default
 let velocity    = {};   // {sprintId: number} — SP actually delivered, typed in at sprint close
 
@@ -942,6 +950,11 @@ function setSyncState(state, ts){
   else if(state==='err') label.textContent='Sync failed';
 }
 
+function setConnected(ok){
+  loadOk=ok;
+  document.getElementById('offlineBar').classList.toggle('show',!ok);
+}
+
 function getPayload(){
   return {data, guests, deleted, sprintDates, sprintNotes, velocity, fteOverrides};
 }
@@ -949,6 +962,13 @@ function getPayload(){
 async function saveToSheets(){
   if(!SYNC_ENABLED){ setSyncState('ok','Local'); showToast('Local run — sheet not touched'); return; }
   if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
+  if(!loadOk){
+    // We never saw the sheet's contents, so our state is whatever this browser
+    // happened to hold — possibly nothing. Writing it would replace the team's.
+    localStorage.setItem('carePlannerData',JSON.stringify(getPayload()));
+    setSyncState('err'); setConnected(false);
+    return;
+  }
   setSyncState('busy');
   try{
     const req={action:'save',data:getPayload()};
@@ -974,7 +994,7 @@ async function saveToSheets(){
 }
 
 async function loadFromSheets(){
-  if(!SYNC_ENABLED){ setSyncState('ok','Local'); showToast('Local run — sheet not touched'); return; }
+  if(!SYNC_ENABLED){ setSyncState('ok','Local'); setConnected(true); showToast('Local run — sheet not touched'); return; }
   if(PROXY_URL==='REPLACE_WITH_YOUR_APPS_SCRIPT_URL'){ showToast('⚠ Set PROXY_URL first'); return; }
   setSyncState('busy');
   try{
@@ -985,10 +1005,11 @@ async function loadFromSheets(){
       applyPayload(j.data);
       const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
       setSyncState('ok',ts);
+      setConnected(true);
       showToast('Loaded from Google Sheets ✓');
-    } else if(j.ok&&!j.data){ showToast('No data in sheet yet'); setSyncState('ok','Empty'); }
-    else { setSyncState('err'); showToast('Load failed'); }
-  } catch(e){ setSyncState('err'); showToast('Network error'); }
+    } else if(j.ok&&!j.data){ setConnected(true); showToast('No data in sheet yet'); setSyncState('ok','Empty'); }
+    else { setSyncState('err'); setConnected(false); showToast('Load failed'); }
+  } catch(e){ setSyncState('err'); setConnected(false); showToast('Network error'); }
 }
 
 function applyPayload(p){
